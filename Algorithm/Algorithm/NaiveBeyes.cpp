@@ -14,16 +14,18 @@
 #include <sstream>
 #include <algorithm>
 using namespace std;
+// namespaces to make code more readable
 using WordCount = unordered_map<string, int>;
 using WordProb = unordered_map<string, double>;
+// global variables we will be using throughout this entire program
 int spam = 0, ham = 0;
 WordProb spamProb;
 WordProb hamProb;
-// global variables we will be using throughout this algorithm
+
 
 /*
 * This method removes all punctuation from a given string
-* and converts to lowercase so there aren't a lot of variations of words
+* and converts to lowercase so there aren't different variations of identical words
 * 
 */
 void removePunctuation(string& line) {
@@ -114,7 +116,8 @@ double calcProbabilitySpam(std::string& email) {
 	string word;
 	// first, create set of words contained both within this email and training set
 	while (ss >> word) {
-		if ((hamProb.find(word) != hamProb.end()) || (spamProb.find(word) != spamProb.end())) {
+		if ((hamProb.find(word) != hamProb.end()) ||
+			(spamProb.find(word) != spamProb.end())) {
 			words.insert(word);
 		}
 	}
@@ -138,17 +141,18 @@ double calcProbabilitySpam(std::string& email) {
 int main(int argc, char** argv) {
 
 	// if argc > 1, we have not trained our dataset yet!
-	if (argc > 1) {
+	// if (argc > 1) {
 		ifstream trainFile(argv[1]);
 		if (!trainFile.good()) return 404;
 
-		std::tie(spamProb, hamProb) = calcGivens(trainFile, spam, ham);
+		std::tie(spamProb, hamProb) = calcGivens(trainFile);
 		cout << "data trained properly" << endl;
-	}
+	/* }
 	else {
 		cout << "no data has been saved yet" << endl;
 		return 0;
 	}
+	*/
 	string input;
 	cout << "Enter emails! type \"exit\" or \"q\" to quit" << endl;
 	/*
