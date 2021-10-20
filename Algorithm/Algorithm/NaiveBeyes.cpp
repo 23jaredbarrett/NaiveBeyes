@@ -106,8 +106,33 @@ std::tuple<WordProb, WordProb> calcGivens(ifstream& in) {
 }
 
 double calcProbabilitySpam(std::string& email) {
+	removePunctuation(email);
+	// use string stream to loop trough words and make set that is contained
+	// in our training set
+	set<string> words;
+	stringstream ss(email);
+	string word;
+	// first, create set of words contained both within this email and training set
+	while (ss >> word) {
+		if ((hamProb.find(word) != hamProb.end()) || (spamProb.find(word) != spamProb.end())) {
+			words.insert(word);
+		}
+	}
+	double probOfSpam = spam / (spam + ham);
+	double probOfHam = ham / (spam + ham);
+	// we need three for loops for different products:
+	// product of probability of each word given the email is spam
+	// product of probability of each word given the email is ham
+	double probWordsGivSpam = 1;
+	double probWordsGivHam = 1;
+	for (const auto& prob : hamProb) {
+		probWordsGivHam *= prob.second;
+	}
+	for (const auto& prob : spamProb) {
+		probWordsGivSpam *= prob.second;
+	}
 	// create a set of unqiue words which are in our training set
-	return -1.0;
+	return (probOfSpam*probWordsGivSpam) / ((probOfSpam * probWordsGivSpam) + (probOfHam * probWordsGivHam));
 }
 
 int main(int argc, char** argv) {
@@ -133,7 +158,8 @@ int main(int argc, char** argv) {
 		if (input == "end" || input == "q") {
 			break;
 		}
-		removePunctuation(input);
-		calcProbabilitySpam(input);
+		double emailSpam = calcProbabilitySpam(input);
+		cout << "Probability this email is spam is: " <<
+			emailSpam << "\nthis email is " << ((emailSpam > 0.5) ? "spam" : "not spam");
 	}
 }
