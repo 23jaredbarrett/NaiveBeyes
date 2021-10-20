@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <set>
 #include <sstream>
+#include <algorithm>
 using namespace std;
 using WordCount = unordered_map<string, int>;
 using WordProb = unordered_map<string, double>;
@@ -22,17 +23,14 @@ WordProb hamProb;
 
 /*
 * This method removes all punctuation from a given string
+* and converts to lowercase so there aren't a lot of variations of words
 * 
 */
-void removePunctuation(string& s) {
-	for (int i = 0, length = s.size(); i < length; i++) {
-		// check whether current character is punctuation or not
-		if (ispunct(s[i]))
-		{
-			s.erase(i--, 1);
-			length = s.size();
-		}
-	}
+void removePunctuation(string& line) {
+	// Remove punctuations in a line
+	std::replace_if(line.begin(), line.end(), ::ispunct, ' ');
+	// convert to lower case to ensure we can check against our map
+	std::transform(line.begin(), line.end(), line.begin(), ::tolower);
 }
 /**
 * This method is used to count each unique word within the given email
@@ -85,25 +83,29 @@ std::tuple<WordProb, WordProb> calcGivens(ifstream& in) {
 	// now, we calculate the probabilities:
 	// p(word | spam) = num spam emails containing word over totalspam+2
 	// p(word | ham) = num ham emails containing word over totalham + 2
-	WordProb spamProb;
-	WordProb hamProb;
 	// the reason for adding 1/2 is because if a word is located in this set
 	// but not in hamProb, then when we calculate the products of probabilities
 	// the total will be zero automatically, and the email would be classified as
 	// either 100% spam or 100% not spam unintentionally.
+	for (auto& wordHa : hamCount) {
+		hamProb[wordHa.first] = (wordHa.second + 1) / (ham + 2);
+		// handle edge case where word is located in ham but not spam
+		spamProb[wordHa.first] = 1/ (2 + spam);
+	}
 	for (auto& wordSp : spamCount) {
 		
 		spamProb[wordSp.first] = (wordSp.second+1) / (spam+2);
+		// handle edge case wheere word is located in spam but not ham
+		if (hamProb.find(wordSp.first) == hamProb.end()) {
+			hamProb[wordSp.first] = 1 / (2 + ham);
+		}
 	}
-	for (auto& wordHa : hamCount) {
-		hamProb[wordHa.first] = (wordHa.second+1) / (ham+2);
-	}
+
 	// return these probabilities
 	return { spamProb, hamProb };
 }
 
-double calcProbabilitySpam(std::string& email, const int& spam, const int& ham,
-const WordProb& spamProb, const WordProb& hamProb) {
+double calcProbabilitySpam(std::string& email) {
 	// create a set of unqiue words which are in our training set
 	return -1.0;
 }
