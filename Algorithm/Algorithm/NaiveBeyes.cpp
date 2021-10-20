@@ -13,6 +13,7 @@
 #include <set>
 #include <sstream>
 #include <algorithm>
+#include <stdio.h>
 using namespace std;
 // namespaces to make code more readable
 using WordCount = unordered_map<string, int>;
@@ -66,7 +67,7 @@ void getWordCount(WordCount& wc, string& email) {
 /**
 * \param[in] in file we are using to 
 */
-std::tuple<WordProb, WordProb> calcGivens(ifstream& in) {
+void calcGivens(ifstream& in) {
 	string sOrH, email;
 	in >> sOrH >> email;
 	WordCount spamCount;
@@ -102,9 +103,6 @@ std::tuple<WordProb, WordProb> calcGivens(ifstream& in) {
 			hamProb[wordSp.first] = 1 / (2 + ham);
 		}
 	}
-
-	// return these probabilities
-	return { spamProb, hamProb };
 }
 
 double calcProbabilitySpam(std::string& email) {
@@ -142,10 +140,10 @@ int main(int argc, char** argv) {
 
 	// if argc > 1, we have not trained our dataset yet!
 	// if (argc > 1) {
-		ifstream trainFile(argv[1]);
+		ifstream trainFile("spam.csv");
 		if (!trainFile.good()) return 404;
 
-		std::tie(spamProb, hamProb) = calcGivens(trainFile);
+		calcGivens(trainFile);
 		cout << "data trained properly" << endl;
 	/* }
 	else {
