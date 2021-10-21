@@ -30,10 +30,25 @@ WordProb hamProb;
 * 
 */
 void removePunctuation(string& line) {
+	// this for loop will check if it's punctuation remove it
+	// if the letter is not punctuation, convert to lower case
+	for (int i = 0, len = line.size(); i < len; i++)
+	{
+		// check whether parsing character is punctuation or not
+		// ispunct causes an error! !isalpha(line[i]) ||
+		if ( ispunct(static_cast<unsigned char>(line[i]))) {
+			line.erase(i--, 1);
+			len = line.size();
+		} else {
+			// convert to  lower case
+			line[i] = tolower(line[i]);
+		}
+	}
 	// Remove punctuations in a line
-	std::replace_if(line.begin(), line.end(), ::ispunct, ' ');
+	// line.erase(std::remove_if(line.begin(), line.end(), ispunct), line.end());
+	// std::replace_if(line.begin(), line.end(), ::ispunct, ' ');
 	// convert to lower case to ensure we can check against our map
-	std::transform(line.begin(), line.end(), line.begin(), ::tolower);
+	// std::transform(line.begin(), line.end(), line.begin(), ::tolower);
 }
 /**
 * This method is used to count each unique word within the given email
@@ -42,8 +57,6 @@ void removePunctuation(string& line) {
 * \param[in] email the given email we are going to parse for certain words
 */
 void getWordCount(WordCount& wc, string& email) {
-	// TODO: NEED TO ADD TO OTHER WORDCOUNT IF NOT EXISTS
-	// to handle zeros
 	// Remove punctuation from email first
 	// by parsing each individual letter
 	removePunctuation(email);
@@ -62,26 +75,33 @@ void getWordCount(WordCount& wc, string& email) {
 			wc[word]++;
 		}
 	}
-
 }
+
 /**
+* 
+* 
 * \param[in] in file we are using to 
 */
 void calcGivens(ifstream& in) {
-	string sOrH, email;
-	in >> sOrH >> email;
+	string sOrH, email, line;
+	in >> sOrH >> sOrH;
 	WordCount spamCount;
 	WordCount hamCount;
-	while (in >> quoted(sOrH) >> quoted(email)) {
+	// we're reading file wrong
+	// in >> quoted(sOrH, ',') >> quoted(email, '\n')
+	while (getline(in, line)) {
+		
 		// create set of words within this particular email
-		if (sOrH == "spam") {
+		if (line.substr(0, 3) == "ham") {
+		email = line.substr(4);
+		ham++;
+		getWordCount(hamCount, email);
+		} else {
+			email = line.substr(5);
 			spam++;
 			getWordCount(spamCount, email);
 		}
-		else {
-			ham++;
-			getWordCount(hamCount, email);
-		}
+		
 	}
 	// now, we calculate the probabilities:
 	// p(word | spam) = num spam emails containing word over totalspam+2
@@ -91,16 +111,16 @@ void calcGivens(ifstream& in) {
 	// the total will be zero automatically, and the email would be classified as
 	// either 100% spam or 100% not spam unintentionally.
 	for (auto& wordHa : hamCount) {
-		hamProb[wordHa.first] = (wordHa.second + 1) / (ham + 2);
+		hamProb[wordHa.first] = (wordHa.second + 1.0) / (ham + 2.0);
 		// handle edge case where word is located in ham but not spam
-		spamProb[wordHa.first] = 1/ (2 + spam);
+		spamProb[wordHa.first] = 1.0/ (2.0 + spam);
 	}
 	for (auto& wordSp : spamCount) {
 		
-		spamProb[wordSp.first] = (wordSp.second+1) / (spam+2);
+		spamProb[wordSp.first] = (wordSp.second+1.0) / (spam+2);
 		// handle edge case wheere word is located in spam but not ham
 		if (hamProb.find(wordSp.first) == hamProb.end()) {
-			hamProb[wordSp.first] = 1 / (2 + ham);
+			hamProb[wordSp.first] = 1.0 / (2.0 + ham);
 		}
 	}
 }
@@ -118,19 +138,19 @@ double calcProbabilitySpam(std::string& email) {
 			(spamProb.find(word) != spamProb.end())) {
 			words.insert(word);
 		}
-	}
-	double probOfSpam = spam / (spam + ham);
-	double probOfHam = ham / (spam + ham);
+	} 
+	double probOfSpam = static_cast<double>(spam) / (spam + ham);
+	double probOfHam = static_cast<double>(ham) / (spam + ham);
 	// we need three for loops for different products:
 	// product of probability of each word given the email is spam
 	// product of probability of each word given the email is ham
-	double probWordsGivSpam = 1;
-	double probWordsGivHam = 1;
-	for (const auto& prob : hamProb) {
-		probWordsGivHam *= prob.second;
+	double probWordsGivSpam = 1.0;
+	double probWordsGivHam = 1.0;
+	for (const auto& word : words) {
+		probWordsGivHam *= hamProb.at(word);
 	}
-	for (const auto& prob : spamProb) {
-		probWordsGivSpam *= prob.second;
+	for (const auto& word : words) {
+		probWordsGivSpam *= spamProb.at(word);
 	}
 	// create a set of unqiue words which are in our training set
 	return (probOfSpam*probWordsGivSpam) / ((probOfSpam * probWordsGivSpam) + (probOfHam * probWordsGivHam));
@@ -162,6 +182,6 @@ int main(int argc, char** argv) {
 		}
 		double emailSpam = calcProbabilitySpam(input);
 		cout << "Probability this email is spam is: " <<
-			emailSpam << "\nthis email is " << ((emailSpam > 0.5) ? "spam" : "not spam");
+			emailSpam << "\nthis email is " << ((emailSpam > 0.5) ? "spam" : "not spam") << std::endl;
 	}
 }
