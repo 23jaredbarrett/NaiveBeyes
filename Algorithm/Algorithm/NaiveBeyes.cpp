@@ -13,16 +13,20 @@
 #include <set>
 #include <sstream>
 #include <algorithm>
+#include <time.h>
 #include <stdio.h>
 using namespace std;
 // namespaces to make code more readable
 using WordCount = unordered_map<string, int>;
 using WordProb = unordered_map<string, double>;
-// global variables we will be using throughout this entire program
-int spam = 0, ham = 0;
-WordProb spamProb;
-WordProb hamProb;
+// wrap our global variables to avoid pollution
+namespace wd {
 
+	// global variables we will be using throughout this entire program
+	int spam = 0, ham = 0;
+	WordProb spamProb;
+	WordProb hamProb;
+}
 
 /*
 * This method removes all punctuation from a given string
@@ -94,11 +98,11 @@ void calcGivens(ifstream& in) {
 		// create set of words within this particular email
 		if (line.substr(0, 3) == "ham") {
 		email = line.substr(4);
-		ham++;
+		wd::ham++;
 		getWordCount(hamCount, email);
 		} else {
 			email = line.substr(5);
-			spam++;
+			wd::spam++;
 			getWordCount(spamCount, email);
 		}
 		
@@ -111,16 +115,16 @@ void calcGivens(ifstream& in) {
 	// the total will be zero automatically, and the email would be classified as
 	// either 100% spam or 100% not spam unintentionally.
 	for (auto& wordHa : hamCount) {
-		hamProb[wordHa.first] = (wordHa.second + 1.0) / (ham + 2.0);
+		wd::hamProb[wordHa.first] = (wordHa.second + 1.0) / (wd::ham + 2.0);
 		// handle edge case where word is located in ham but not spam
-		spamProb[wordHa.first] = 1.0/ (2.0 + spam);
+		wd::spamProb[wordHa.first] = 1.0/ (2.0 + wd::spam);
 	}
 	for (auto& wordSp : spamCount) {
 		
-		spamProb[wordSp.first] = (wordSp.second+1.0) / (spam+2);
+		wd::spamProb[wordSp.first] = (wordSp.second+1.0) / (wd::spam+2);
 		// handle edge case wheere word is located in spam but not ham
-		if (hamProb.find(wordSp.first) == hamProb.end()) {
-			hamProb[wordSp.first] = 1.0 / (2.0 + ham);
+		if (wd::hamProb.find(wordSp.first) == wd::hamProb.end()) {
+			wd::hamProb[wordSp.first] = 1.0 / (2.0 + wd::ham);
 		}
 	}
 }
@@ -134,23 +138,23 @@ double calcProbabilitySpam(std::string& email) {
 	string word;
 	// first, create set of words contained both within this email and training set
 	while (ss >> word) {
-		if ((hamProb.find(word) != hamProb.end()) ||
-			(spamProb.find(word) != spamProb.end())) {
+		if ((wd::hamProb.find(word) != wd::hamProb.end()) ||
+			(wd::spamProb.find(word) != wd::spamProb.end())) {
 			words.insert(word);
 		}
 	} 
-	double probOfSpam = static_cast<double>(spam) / (spam + ham);
-	double probOfHam = static_cast<double>(ham) / (spam + ham);
+	double probOfSpam = static_cast<double>(wd::spam) / (wd::spam + wd::ham);
+	double probOfHam = static_cast<double>(wd::ham) / (wd::spam + wd::ham);
 	// we need three for loops for different products:
 	// product of probability of each word given the email is spam
 	// product of probability of each word given the email is ham
 	double probWordsGivSpam = 1.0;
 	double probWordsGivHam = 1.0;
 	for (const auto& word : words) {
-		probWordsGivHam *= hamProb.at(word);
+		probWordsGivHam *= wd::hamProb.at(word);
 	}
 	for (const auto& word : words) {
-		probWordsGivSpam *= spamProb.at(word);
+		probWordsGivSpam *= wd::spamProb.at(word);
 	}
 	// create a set of unqiue words which are in our training set
 	return (probOfSpam*probWordsGivSpam) / ((probOfSpam * probWordsGivSpam) + (probOfHam * probWordsGivHam));
@@ -162,9 +166,10 @@ int main(int argc, char** argv) {
 	// if (argc > 1) {
 		ifstream trainFile("spam.csv");
 		if (!trainFile.good()) return 404;
-
+		time_t start = time(0);
 		calcGivens(trainFile);
-		cout << "data trained properly" << endl;
+		double seconds_since_start = difftime(time(0), start);
+		cout << "data trained properly in " << seconds_since_start << " seconds." << endl;
 	/* }
 	else {
 		cout << "no data has been saved yet" << endl;
