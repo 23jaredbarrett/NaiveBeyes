@@ -97,9 +97,9 @@ void calcGivens(ifstream& in) {
 		
 		// create set of words within this particular email
 		if (line.substr(0, 3) == "ham") {
-		email = line.substr(4);
-		wd::ham++;
-		getWordCount(hamCount, email);
+			email = line.substr(4);
+			wd::ham++;
+			getWordCount(hamCount, email);
 		} else {
 			email = line.substr(5);
 			wd::spam++;
@@ -138,8 +138,9 @@ double calcProbabilitySpam(std::string& email) {
 	string word;
 	// first, create set of words contained both within this email and training set
 	while (ss >> word) {
-		if ((wd::hamProb.find(word) != wd::hamProb.end()) ||
-			(wd::spamProb.find(word) != wd::spamProb.end())) {
+		// we only need to check one ham set or spam set to check
+		// if the word is in it because earlier, we ensured all words within hamProb are in spamProb
+		if ((wd::hamProb.find(word) != wd::hamProb.end())) {
 			words.insert(word);
 		}
 	} 
@@ -187,6 +188,6 @@ int main(int argc, char** argv) {
 		}
 		double emailSpam = calcProbabilitySpam(input);
 		cout << "Probability this email is spam is: " <<
-			emailSpam << "\nthis email is " << ((emailSpam > 0.5) ? "spam" : "not spam") << std::endl;
+			emailSpam << "\nthis email is " << ((emailSpam > 0.5) ? "SPAM" : "HAM") << std::endl <<std::endl;
 	}
 }
